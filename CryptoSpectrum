@@ -1,0 +1,60 @@
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class CryptoSpectrum:
+    def __init__(self):
+        self.api_url = 'https://api.coingecko.com/api/v3/'
+
+    def get_current_market_data(self, coin_id: str) -> dict:
+        url = f"{self.api_url}coins/markets"
+        params = {
+            'vs_currency': 'usd',
+            'ids': coin_id
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        return data[0] if data else {}
+
+    def get_historical_data(self, coin_id: str, days: int = 30) -> pd.DataFrame:
+        url = f"{self.api_url}coins/{coin_id}/market_chart"
+        params = {
+            'vs_currency': 'usd',
+            'days': days,
+            'interval': 'daily'
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        if 'prices' in data:
+            df = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            return df
+        else:
+            return pd.DataFrame()
+
+    def plot_historical_data(self, coin_id: str, days: int = 30):
+        df = self.get_historical_data(coin_id, days)
+        if df.empty:
+            print("No historical data found.")
+            return
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(df['timestamp'], df['price'], marker='o', linestyle='-')
+        plt.title(f'{coin_id.capitalize()} Price Over the Last {days} Days')
+        plt.xlabel('Date')
+        plt.ylabel('Price (USD)')
+        plt.grid(True)
+        plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    crypto_spectrum = CryptoSpectrum()
+
+    # Fetch and Display Current Market Data for Bitcoin
+    coin_id = 'bitcoin'  # Replace with the desired cryptocurrency ID
+    market_data = crypto_spectrum.get_current_market_data(coin_id)
+    print(f"Current Market Data for {coin_id.capitalize()}:")
+    print(market_data)
+
+    # Plot Historical Data for the Last 30 Days for Bitcoin
+    crypto_spectrum.plot_historical_data(coin_id, days=30)
